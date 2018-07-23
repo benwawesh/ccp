@@ -1,0 +1,173 @@
+{% load static %}
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CCP</title>
+
+  {% block head %}{% endblock %}
+
+  <link rel="stylesheet" type="text/css" href="{% static 'accounts/jqueryui/jquery-ui.min.css' %}" />
+  <link rel="stylesheet" type="text/css" href="{% static 'accounts/w3css/w3.css' %}" />
+  <link rel="stylesheet" type="text/css" href="{% static 'accounts/css/bootstrap.min.css' %}" />
+  <link rel="stylesheet" type="text/css" href="{% static 'accounts/font-awesome/css/font-awesome.min.css' %}" />
+  <link rel="stylesheet" type="text/css" href="{% static 'accounts/bootstrapdatetimepicker/bootstrap-datetimepicker.min.css' %}"/>
+  <link rel="stylesheet" type="text/css" href="{% static 'accounts/CustomCss/LuminoStyles.css' %}" />
+  <link rel="stylesheet" type="text/css" href="{% static 'accounts/CustomCss/styles.css' %}" />
+
+  <!--[if lt IE 9]>
+      <script src="js/html5shiv.js"></script>
+      <script src="js/respond.min.js"></script>
+  <![endif]-->
+</head>
+
+
+<body>
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+        <div class="container-fluid">
+			<div class="navbar-header">
+				<button type="button"
+                    class="navbar-toggle collapsed"
+                    data-toggle="collapse"
+                    data-target="#sidebar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+
+                   <img src="{% static "accounts/img/mwananchi-logo2.png" %}"
+                     alt="Profile pic"
+                     class="w3-padding-8"
+                     style="height: 70px; width: 70px;"/>
+                    <b>CCP</b>
+				<ul class="user-menu">
+                    <li class="dropdown pull-right">
+
+                        <a href="#" class="dropdown-toggle w3-text-black" data-toggle="dropdown">
+                            <i class="fa fa-user-o"></i> &nbsp;&nbsp; {{ request.user.email }}
+                            <span class="caret"></span>
+                        </a>
+
+                        <ul class="dropdown-menu" role="menu">
+
+                          <li>
+                            <a class="w3-text-black cursor-pointer"
+                               href="#">
+                               <i class="fa fa-user-o"></i>&nbsp; Profile
+                            </a>
+                          </li>
+
+                          <li class="divider"></li>
+
+                          <li>
+                            <a class="w3-text-black cursor-pointer"
+                               href="#">
+                                <i class="fa fa-cog"></i>&nbsp;Settings
+                            </a>
+                          </li>
+
+                          <li class="divider"></li>
+
+                          <li>
+                            <a class="w3-text-black cursor-pointer"
+                               href="{% url 'accounts:logout_user' %}">
+                              <i class="fa fa-power-off"></i>
+                              &nbsp; Logout
+                            </a>
+                          </li>
+                        </ul>
+                    </li>
+                 </ul>
+            </div>
+        </div>
+	</nav>
+
+    {% block sidebar %}
+        {% if request.user.is_superuser == True and  request.user.is_staff  == True %}
+            {% include 'accounts/sidebar_admin.html' %}
+        {% elif  request.user.is_superuser == False and  request.user.is_staff  == False%}
+            {% include 'accounts/sidebar_client.html' %}
+        {% endif %}
+    {% endblock %}
+
+
+    <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <br>
+        {% block content %}
+
+        {% endblock %}
+    </div>
+
+    <div id="dynamic-content-holder"></div>
+
+    <div id="page-modal"
+		class="modal fade" role="dialog"
+		data-backdrop="static"
+		data-keyboard="false">
+        <div class="modal-dialog modal-width-60" id='page-modal-dialog'>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <a class=" pull-right cursor-pointer w3-text-red" data-dismiss="modal">
+                        <i class="fa fa-times-circle-o"></i>
+                    </a>
+                    <h4 id="page-modal-header" class="text-center w3-text-black">
+
+                    </h4>
+                </div>
+
+                <div class="modal-body" id="page-modal-body">
+
+                </div>
+                <div class="modal-footer" id="page-modal-footer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'accounts/js/jquery.js' %}"></script>
+    <script src="{% static 'accounts/jqueryui/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'accounts/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'accounts/Highcharts/code/highcharts.js' %}"></script>
+    <script src="{% static 'accounts/Highcharts/code/modules/exporting.js' %}"></script>
+    <script src="{% static 'accounts/bootstrapdatetimepicker/transition.min.js' %}"></script>
+    <script src="{% static 'accounts/bootstrapdatetimepicker/moment.min.js' %}"></script>
+    <script src="{% static 'accounts/bootstrapdatetimepicker/bootstrap-datetimepicker.min.js' %}"></script>
+	<script src="{% static 'accounts/CustomJs/sidebar.js' %}"></script>
+
+    <script>
+    $('.datepicker-required').datetimepicker({
+        sideBySide:true,
+        collapse:true,
+        format: 'YYYY-MM-DD'
+    });
+  </script>
+
+    <!--
+         Script to me moved to sms/static/sms
+    -->
+    <script>
+		!function ($) {
+		    $(document).on("click","ul.nav li.parent > a > span.icon", function(){
+		        $(this).find('em:first').toggleClass("glyphicon-minus");
+		    });
+		    $(".sidebar span.icon").find('em:first').addClass("glyphicon-plus");
+		}(window.jQuery);
+
+		$(window).on('resize', function () {
+		  if ($(window).width() > 768) $('#sidebar-collapse').collapse('show')
+		});
+		$(window).on('resize', function () {
+		  if ($(window).width() <= 767) $('#sidebar-collapse').collapse('hide')
+		});
+	</script>
+    {% block extrahead %}
+
+    {% endblock %}
+</body>
+</html>
+
+
+

@@ -1,0 +1,272 @@
+{% extends 'accounts/base_index.html' %}
+{% load static %}
+{% block content %}
+
+    <div class="w3-container">
+      <br>
+      <br>
+      <div class="w3-row">
+        <div class="col-lg-offset-4 col-lg-4 center ">
+            <p>
+                {% if messages %}
+                     {% for message in messages %}
+                         <h4 class="w3-text-blue w3-center">{{ message }}</h4>
+                     {% endfor %}
+                {% endif %}
+            </p>
+            <div class="w3-card-4" style="margin-top: 15%">
+                <div class="w3-container w3-center w3-text-dark-grey border-bottom">
+                 <h4>Create an account</h4>
+                </div>
+                <form class="w3-container w3-padding-4" method="post">
+                    <br>
+
+                  <div>
+                    <p>
+                      <label>First name</label>
+                      <input class="w3-input w3-text-blue"
+                        type="text"
+                        id="first-name"
+                        placeholder="First Name">
+                      <span id="first-name-response"></span>
+                    </p>
+                    <p>
+                      <label>Last name</label>
+                      <input class="w3-input w3-text-blue"
+                        type="text"
+                        id="last-name"
+                        placeholder="Last Name">
+                      <span id="last-name-response"></span>
+                    </p>
+                    <p>
+                      <label>Email address</label>
+                      <input class="w3-input w3-text-blue"
+                        type="text"
+                        id="email-address"
+                        placeholder="Email">
+                      <span id="email-address-response"></span>
+                    </p>
+                    <p>
+                      <label>Phone number</label>
+                      <input class="w3-input w3-text-blue" onkeyup="validatephone(this);"
+                        type="tel"
+                        id="phone-number"
+                        placeholder="Phone Number">
+                      <span id="phone-number-response"></span>
+                    </p>
+                    <p>
+                    <label>Password</label>
+                    <input class="w3-input w3-text-blue"
+                           type="password"
+                           id="password"
+                           placeholder="Password">
+                    <span class="w3-text-red" id="password-response"></span>
+                    </p>
+                    <p>
+                    <label>Confirm Password</label>
+                    <input class="w3-input w3-text-blue"
+                           type="password"
+                           id="password2"
+                           placeholder="Confirm Password">
+                    <span class="w3-text-red" id="password2-response"></span>
+                    </p>
+                    <div class="w3-padding-bottom w3-row">
+                      <div class="w3-col l6 s6 m6">
+                        <a class="w3-btn w3-blue-gray cursor-pointer active" id="btn-login">Register</a>
+                      </div>
+
+                    </div>
+                  </div>
+                </form>
+            </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="page-modal"
+		class="modal fade" role="dialog"
+		data-backdrop="static"
+		data-keyboard="false">
+        <div class="modal-dialog modal-width-60" id='page-modal-dialog'>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <a class=" pull-right cursor-pointer w3-text-red" data-dismiss="modal">
+                        <i class="fa fa-times-circle-o"></i>
+                    </a>
+                    <h4 id="page-modal-header" class="text-center w3-text-black">
+
+                    </h4>
+                </div>
+
+                <div class="modal-body" id="page-modal-body">
+
+                </div>
+                <div class="modal-footer" id="page-modal-footer"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        $(document).on('click', '#btn-login', function(e){
+            e.preventDefault();
+            $('#btn-login').prop('disabled', false);
+            var userName = $('#email-address').val();
+            var password = $('#password').val();
+            var password2 = $('#password2').val();
+            var first_name = $('#first-name').val();
+            var last_name = $('#last-name').val();
+            var phone_number = $('#phone-number').val();
+            var errorExists = false;
+            var errorMessage = 'Network error.';
+            if(phone_number.trim().length < 5){
+                errorExists = true;
+                $('#phone-number').addClass('input-error');
+            }else{
+                $('#phone-number').removeClass('input-error');
+            }
+            if(first_name.trim().length < 3){
+                errorExists = true;
+                $('#first-name').addClass('input-error');
+            }else{
+                $('#first-name').removeClass('input-error');
+            }
+            if(last_name.trim().length < 3){
+                errorExists = true;
+                $('#last-name').addClass('input-error');
+            }else{
+                $('#last-name').removeClass('input-error');
+            }
+
+            if(userName.trim().length < 3){
+                errorExists = true;
+                $('#email-address').addClass('input-error');
+            }else{
+                $('#email-address').removeClass('input-error');
+            }
+
+            if(password.length === 0){
+                errorExists = true;
+                $('#password').addClass('input-error');
+            }else{
+                $('#password').removeClass('input-error');
+            }
+
+            if(password!== password2){
+                errorExists = true;
+                $('#password').addClass('input-error');
+                $('#password2').addClass('input-error');
+            }else {
+                $('#password').removeClass('input-error');
+                $('#password2').removeClass('input-error');
+            }
+
+
+            if(errorExists === true){
+                return;
+            }
+
+            var srvRqst = $.ajax({
+                url: "{% url 'accounts:user_registration' %}",
+                data: {
+                    username: userName,
+                    password: password,
+                    phone_number: phone_number,
+                    first_name: first_name,
+                    last_name : last_name,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                type: 'post',
+                datatype: 'json',
+                beforeSend: function(){
+                    $('#btn-login').html('<i class="fa fa-circle-o-notch fa-spin"></i> Loading...');
+                }
+            });
+
+
+            var header = '<span>User Registration Message</span>';
+            var body = '<div class="w3-container">'
+                +'<p>'
+                +'<span id="password-response" class="w3-text-red"></span>'
+                '+</p></div>';
+
+
+
+            $('#page-modal-header').html(header);
+            $('#page-modal-body').html(body);
+            $('#page-modal').modal('show');
+
+            srvRqst.done(function(response){
+                try{
+                    var responseObj =$.parseJSON(response);
+                    console.log(responseObj['STATUS']);
+                    console.log(responseObj['MESSAGE']);
+                    if(responseObj['STATUS'] === '1'){
+                        var msg = responseObj['MESSAGE'];
+                        var body = '<ul class="w3-ul">';
+
+                        for(var i=0; i< msg.length; i++){
+                            var icon = '';
+                            if(msg[i]['STATUS'] === '1') {
+                               icon = '<i class="fa fa-check-circle w3-text-green"></i>';
+                            }
+                            else{
+                               icon = '<i class="fa fa-times-circle w3-text-red"></i>';
+                            }
+                            body += '<li>'
+                            +   icon  +' '+ msg[i]['MESSAGE']
+                            +' </li>';
+                        }
+                        body += "</ul>";
+                        $('#page-modal-body').html(body);
+                    }else{
+                        var msg = responseObj['MESSAGE'];
+                        var body = '<ul class="w3-ul">';
+
+                        for(var i=0; i< msg.length; i++){
+                            var icon = '';
+                            if(msg[i]['STATUS'] === '0') {
+                               icon = '<i class="fa fa-times-circle w3-text-red"></i>';
+                            }
+                            else{
+                                icon = '<i class="fa fa-check-circle w3-text-green"></i>';
+                            }
+                            body += '<li>'
+                            +   icon  +' '+ msg[i]['MESSAGE']
+                            +' </li>';
+                        }
+                        body += "</ul>";
+                        $('#page-modal-body').html(body);
+
+                    }
+                }catch(exp){
+                    $('#password-response').html(errorMessage);
+                }finally{
+                     $('#btn-login').html('login').prop('disabled', false);
+                }
+            });
+            srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                $('#password-response').html(errorMessage);
+                $('#btn-login').html('login').prop('disabled', false);
+            });
+        });
+    </script>
+
+    <script>
+        function validatephone(phone)
+            {
+                var maintainplus = '';
+                var numval = phone.value
+                if ( numval.charAt(0)=='+' )
+                {
+                    var maintainplus = '';
+                }
+                curphonevar = numval.replace(/[\\A-Za-z!"£$%^&\,*+_={};:'@#~,.Š\/<>?|`¬\]\[]/g,'');
+                phone.value = maintainplus + curphonevar;
+                var maintainplus = '';
+                phone.focus;
+            }
+    </script>
+{% endblock %}

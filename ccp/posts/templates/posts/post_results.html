@@ -1,0 +1,513 @@
+{% extends 'accounts/base_app.html' %}
+{% load static %}
+{% block content %}
+    <script src="{% static 'accounts/js/jquery.js' %}"></script>
+   <div class="w3-container">
+        <ul class="nav nav-tabs">
+            <li class="active">
+                <a data-toggle="tab" href="#tweets-container">
+                    <i class="fa fa-comment w3-text-blue"></i> Posts
+                </a>
+            </li>
+            <li>
+                <a data-toggle="tab" href="#analysis-container" id="analysis-container-tab">
+                    <i class="fa fa-line-chart w3-text-red"></i> Post analysis
+                </a>
+            </li>
+        </ul>
+
+         <div class="tab-content">
+            <div class="tab-pane fade in active" id="tweets-container">
+                <div class="alert alert-danger alert-dismissable fade in" id="message-alert">
+                    <a class="close" data-dismiss="alert" aria-label="close" onClick="document.location.reload(true)">×</a>
+                    <strong id="message-sent-response"><span></span></strong>
+                </div>
+                <br>
+                {%  if posts %}
+                    {% for data in posts %}
+                         <div class="w3-container w3-hover-light-grey"  >
+                            <div class="border-bottom-dotted" >
+                                <h5 class="w3-text-blue">
+                                    {{ data.owner }}   |  <a class="fa fa-line-chart cursor-pointer  w3-text-red" id="post-vote-analysis">Post analysis</a>
+                                    <span class="pull-right w3-small">
+                                        <a class="cursor-pointer" id="down-vote"><span class="w3-text-red post-down-vote" id="down-vote-count-{{ data.id }}" data-value="{{ data.id }}">Down vote   <i class="fa fa-thumbs-o-down"></i> &nbsp;&nbsp; {{ data.down_vote_count }} |</span></a>&nbsp;
+                                        <a class="cursor-pointer" id="up-vote"><span class="w3-text-green post-up-vote" id="up-vote-count-{{ data.id }}" data-value="{{ data.id }}">Up vote   <i class="fa fa-thumbs-o-up"></i> &nbsp;&nbsp; {{ data.up_vote_count }}  |</span></a>&nbsp;
+                                        <i class="fa fa fa-users"></i>&nbsp;&nbsp; {{ data.voters }} &nbsp;&nbsp;<span class="w3-text-black">|</span>&nbsp;&nbsp;
+                                            {{ data.date_created | date:"d M Y g:i:s a" }} &nbsp;&nbsp;
+                                    </span>
+
+                                </h5>
+                            </div>
+
+                            <br>
+
+                                <p class="w3-text-black w3-padding">
+                                    <span id="post-id">{{ data.id }}</span>
+                                    {{ data.content }}
+                                </p>
+
+
+                        </div>
+                        <br>
+                    {% endfor %}
+                {% else %}
+
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="analysis-container">
+                <div class="w3-container w3-card-2">
+                   <div class="border-bottom-dotted w3-padding">
+                       <h4 class="w3-left w3-text-blue">Vote Analysis</h4>
+                       <br>
+                   </div>
+                   <div style="height: 400px;" id="twitter-sentiment-analysis-chart-div"></div>
+                </div>
+                <br>
+
+                <br>
+                <div class="w3-container w3-card-2">
+                   <div class="border-bottom-dotted w3-padding">
+                       <h4 class="w3-left w3-text-blue">Votes by region</h4>
+                       <br>
+                   </div>
+                   <div style="height: 400px;" id="twitter-sentiment-analysis-tweets-location-div"></div>
+                </div>
+                <br>
+{#                <div class="w3-container w3-card-2">#}
+{#                   <div class="border-bottom-dotted w3-padding">#}
+{#                       <h4 class="w3-left w3-text-blue">Sentiments by region</h4>#}
+{#                       <br>#}
+{#                   </div>#}
+{#                   <div style="height: 400px;" id="twitter-sentiment-analysis-location-div"></div>#}
+{#                </div>#}
+
+            </div>
+        </div>
+   </div>
+
+    <!-- The Modal -->
+
+    <div id="page-modal"
+		class="modal fade" role="dialog"
+		data-backdrop="static"
+		data-keyboard="false">
+        <div class="modal-dialog modal-width-60" id='page-modal-dialog'>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <a class=" pull-right cursor-pointer w3-text-red" data-dismiss="modal">
+                        <i class="fa fa-times-circle-o"></i>
+                    </a>
+                    <h4 id="page-modal-header" class="text-center w3-text-black">
+
+                    </h4>
+                </div>
+
+                <div class="modal-body" id="page-modal-body">
+
+                </div>
+                <div class="modal-footer" id="page-modal-footer"></div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+    <script>
+
+
+        (function(){
+             var srvRqst = $.ajax({
+                url: "",
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                  },
+                type: 'post',
+                datatype: 'json'
+            });
+            srvRqst.done(function (response) {
+                try{
+                    var responseObj = $.parseJSON(response);
+                    var categories = [];
+                    var data = [];
+                    for(var i = 0; i < responseObj.length; i++){
+                        categories.push(responseObj[i]['sentiment']);
+                        data.push(parseFloat(responseObj[i]['count']));
+                      }
+                      PlotSentimentAnalysis(categories, data);
+                }catch(ex){}finally {}
+            });
+
+            var tweetsByRegion = $.ajax({
+                  url: "",
+                  data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                  },
+                  type: 'post',
+                  datatype: 'json'
+                });
+            tweetsByRegion.done(function(response){
+                  try{
+                    var responseObj = $.parseJSON(response);
+                    console.log(responseObj);
+                    var graphData = [];
+                    for(var i = 0; i < responseObj.length; i++){
+                      graphData.push({
+                        name: responseObj[i]['region'],
+                        y: parseFloat(responseObj[i]['count'])
+                      });
+                    }
+                    console.log(graphData);
+                  ChartTweetsByRegion(graphData);
+                  }catch(exp){}
+                });
+        })();
+
+        function GetFrequentWords(num_of_words){
+            var srvRqst = $.ajax({
+                url: "",
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    num_of_words : num_of_words
+                  },
+                type: 'post',
+                datatype: 'json'
+            });
+            srvRqst.done(function (response) {
+                try{
+                    var responseObj = $.parseJSON(response);
+                    var categories = [];
+                    var data = [];
+                    for(var i = 0; i < responseObj.length; i++){
+                        categories.push(responseObj[i]['word']);
+                        data.push(parseFloat(responseObj[i]['count']));
+                      }
+                      PlotWordCount(categories, data);
+                }catch(ex){}finally {}
+            });
+        }
+
+         function PlotWordCount(categories, data){
+              Highcharts.chart('word-count-frequency-div', {
+                    chart: {
+                        type: 'column'
+                    },
+                    title: {
+                        text: 'Word frequency in tweets'
+                    },
+                    xAxis: {
+                        categories: categories,
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Count'
+                        }
+                    },
+                    plotOptions: {
+                        line: {
+                            dataLabels: {
+                                enabled: true
+                            },
+                            enableMouseTracking: false
+                        }
+                    },
+                    series: [{
+                        name: 'Word frequncy count',
+                        data: data
+                    }]
+              });
+        }
+
+        function PlotSentimentAnalysis(categories, data){
+              Highcharts.chart('twitter-sentiment-analysis-chart-div', {
+                    chart: {
+                        type: 'column'
+                    },
+                    title: {
+                        text: 'Sentiment analysis in tweets'
+                    },
+                    xAxis: {
+                        categories: categories,
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Count'
+                        }
+                    },
+                    plotOptions: {
+                        line: {
+                            dataLabels: {
+                                enabled: true
+                            },
+                            enableMouseTracking: false
+                        }
+                    },
+                    series: [{
+                        name: 'Sentiment analysis',
+                        data: data
+                    }]
+              });
+        }
+    </script>
+
+
+    <!--Chart gender-->
+    <script>
+        function ChartTweetsByRegion(graphData){
+          Highcharts.chart('twitter-sentiment-analysis-tweets-location-div',
+          {
+            chart: {
+                plotBackgroundColor: null,
+                plotBorderWidth: null,
+                plotShadow: false,
+                type: 'pie'
+            },
+            title:{
+              text: ' Tweets by region'
+            },
+            tooltip: {
+                pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                        style: {
+                            color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                        }
+                    }
+                }
+            },
+            series: [{
+              name: 'tweets',
+              colorByPoint: true,
+              data: graphData
+            }]
+          });
+        }
+    </script>
+
+    <script>
+        generateSentimentsByRegion();
+        function generateSentimentsByRegion(){
+            Highcharts.chart('twitter-sentiment-analysis-location-div', {
+                chart: {
+                    type: 'column'
+                },
+                title: {
+                    text: 'Sentiments by region'
+                },
+                xAxis: {
+                    categories: [
+                        'Jan',
+                        'Feb',
+                        'Mar',
+                        'Apr',
+                        'May',
+                        'Jun',
+                        'Jul',
+                        'Aug',
+                        'Sep',
+                        'Oct',
+                        'Nov',
+                        'Dec'
+                    ],
+                    crosshair: true
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: 'Sentiments'
+                    }
+                },
+                tooltip: {
+                    headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+                    pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
+                        '<td style="padding:0"><b>{point.y:.1f} mm</b></td></tr>',
+                    footerFormat: '</table>',
+                    shared: true,
+                    useHTML: true
+                },
+                plotOptions: {
+                    column: {
+                        pointPadding: 0.2,
+                        borderWidth: 0
+                    }
+                },
+                series: [{
+                    name: 'Tokyo',
+                    data: [49.9, 71.5, 106.4, 129.2, 144.0, 176.0, 135.6, 148.5, 216.4, 194.1, 95.6, 54.4]
+
+                }, {
+                    name: 'New York',
+                    data: [83.6, 78.8, 98.5, 93.4, 106.0, 84.5, 105.0, 104.3, 91.2, 83.5, 106.6, 92.3]
+
+                }, {
+                    name: 'London',
+                    data: [48.9, 38.8, 39.3, 41.4, 47.0, 48.3, 59.0, 59.6, 52.4, 65.2, 59.3, 51.2]
+
+                }, {
+                    name: 'Berlin',
+                    data: [42.4, 33.2, 34.5, 39.7, 52.6, 75.5, 57.4, 60.4, 47.6, 39.1, 46.8, 51.1]
+
+                }]
+            });
+        }
+
+
+
+    </script>
+
+
+    <script>
+    $(document).on('click', '#post-vote-analysis', function(e){
+            e.preventDefault();
+            var body = '<div class="tab-pane fade" id="analysis-container">'
+                        +'<div class="w3-container w3-card-2">'
+                        +'<div class="border-bottom-dotted w3-padding">'
+                        +'<h4 class="w3-left w3-text-blue">Vote Analysis</h4>'
+                        +'<br>'
+                        +'</div>'
+                        +'<div style="height: 400px;" id="twitter-sentiment-analysis-chart-div"></div>'
+                        +'</div>'
+                        +'</div>';
+
+
+
+            $('#page-modal-header').html('');
+            $('#page-modal-body').html(body);
+            $('#page-modal').modal('show');
+        });
+    $(document).ready(function() {
+            $('#message-alert').hide();
+
+
+
+        });
+
+        $(document).on('click', '.post-up-vote', function(e){
+            e.preventDefault();
+            var post_id = $(this).data('value');
+            var voter_id = '{{ request.user.id }}';
+            var errorMessage = 'Network error.';
+            console.log("####################################");
+            console.log(post_id);
+            var up_post_span ='';
+
+            var srvRqst = $.ajax({
+                url: '{% url 'posts:up_vote' %}',
+                data:{
+                    voter_id : voter_id,
+                    content_id : post_id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                type: 'post',
+                datatype: 'json'
+            });
+            srvRqst.done(function(response){
+                try {
+                    var responseObj = $.parseJSON(response);
+                    if(responseObj['status'] === '1'){
+
+                        var up_vote_span = '<span class="w3-text-green post-up-vote"  id="up-vote-count-'+post_id+'" data-value="'+post_id+'" >'
+                            +'Up vote   '
+                            +'<i class="fa fa-thumbs-o-up">'
+                            +'</i>'
+                            +'&nbsp;'+'&nbsp;'+'&nbsp;'+'&nbsp;'
+                            +{{ data.up_vote_count }}responseObj['up_vote_count']
+                            +' |'
+                            +'</span>';
+
+                        var up_vote = document.getElementById('up-vote-count-'+post_id);
+                        $('#up-vote-count-'+post_id).replaceWith(up_vote_span);
+
+
+
+                    }else{
+
+                        $('#message-alert').show();
+                        $('#message-sent-response').html(responseObj['message']);
+                    }
+                }catch(exp){
+                    $('#message-alert').show();
+                    $('#message-sent-response').html(responseObj['message']);
+                }
+
+            });
+            srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                $('#message-alert').show();
+                $('#message-sent-response').html(responseObj['message']);
+
+            });
+
+        });
+    </script>
+
+        <script>
+
+        $(document).on('click', '.post-down-vote', function(e){
+            e.preventDefault();
+            var post_id = $(this).data('value');
+            var voter_id = '{{ request.user.id }}';
+            var errorMessage = 'Network error.';
+            console.log("####################################");
+            console.log(post_id);
+            var up_post_span ='';
+
+            var srvRqst = $.ajax({
+                url: '{% url 'posts:down_vote' %}',
+                data:{
+                    voter_id : voter_id,
+                    content_id : post_id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                type: 'post',
+                datatype: 'json'
+            });
+            srvRqst.done(function(response){
+                try {
+                    var responseObj = $.parseJSON(response);
+                    if(responseObj['status'] === '1'){
+
+                        var down_vote_span = '<span class="w3-text-red post-down-vote"  id="down-vote-count-'+post_id+'" data-value="'+post_id+'" >'
+                            +'Down vote   '
+                            +'<i class="fa fa-thumbs-o-down">'
+                            +'</i>'
+                            +'&nbsp;'+'&nbsp;'+'&nbsp;'+'&nbsp;'
+                            +{{ data.down_vote_count }}responseObj['down_vote_count']
+                            +' |'
+                            +'</span>';
+
+                        var down_vote = document.getElementById('down-vote-count-'+post_id);
+                        $('#down-vote-count-'+post_id).replaceWith(down_vote_span);
+
+
+
+                    }else{
+
+                        $('#message-alert').show();
+                        $('#message-sent-response').html(responseObj['message']);
+                    }
+                }catch(exp){
+                    $('#message-alert').show();
+                    $('#message-sent-response').html(responseObj['message']);
+                }
+
+            });
+            srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                $('#message-alert').show();
+                $('#message-sent-response').html(responseObj['message']);
+
+            });
+
+        });
+    </script>
+
+
+
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends 'accounts/base_app.html' %}
+{% load static %}
+
+{% block content %}
+
+
+
+     <div class="col-sm-9 ">
+        <br>
+        <br>
+        <div class="row">
+            <div class="col-lg-2 col-md-2 col-sm-2"></div>
+            <div class="col-lg-10 col-md-10 col-sm-10">
+                <div class="w3-card-4">
+                    <div class="w3-container w3-center w3-text-dark-grey border-bottom">
+                         <h4>New Posts</h4>
+                    </div>
+                    <form class="w3-form" method="post" id="chat-form">
+                        {% csrf_token %}
+                            <div class="alert alert-success alert-dismissable fade in" id="message-alert">
+                                <a class="close" data-dismiss="alert" aria-label="close">×</a>
+                                <strong id="message-sent-response"><span></span></strong>
+                            </div>
+                          <div>
+
+                            <p>
+                                <label>Message</label>
+                                <textarea class="w3-input w3-text-blue"
+                                   id="message"
+                                   name="message"
+                                   rows="5"
+                                   required
+                                   placeholder="Message"></textarea>
+                                <span class="w3-text-red" id="message-response"></span>
+                            </p>
+                          </div>
+                          <div class="w3-padding-bottom  w3-row">
+                            <a class="w3-btn w3-col l4 s4 m4 w3-btn w3-blue-gray pull-left" id="btn-fcm-send-chat">
+                                Publish
+                            </a>
+                          </div>
+                    </form>
+                </div>
+            </div>
+         </div>
+     </div>
+<script src="{% static 'accounts/js/jquery.js' %}"></script>
+<script src="{%  static 'accounts/bootstrap/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'accounts/underscore_js/underscore-min.js' %}"></script>
+<script src="{% static 'accounts/backbone_js/backbone-min.js' %}"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#message-alert').hide();
+
+
+
+        });
+
+        $(document).on('click', '#btn-fcm-send-chat', function (e) {
+             e.preventDefault();
+             var value = 1;
+             sendMessage(value);
+        });
+
+        function sendMessage(value) {
+            <!--e.preventDefault();-->
+            var message = $('#message').val();
+
+            if (value === 1){
+                channel="FCM"}else{channel="SMS"}
+
+
+            var msg = "Are you sure you want to publish post ";
+            response = confirm(msg);
+            if (response == true){
+                var data = {
+                    message: message,
+                    message_channel: value,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                };
+
+                var srvRqst = $.ajax({
+                    url: "{% url 'posts:create_post_page' %}",
+                    data: data,
+                    type: 'post',
+                    datatype: 'json',
+                    beforeSend: function(){
+                        $('#btn-fcm-send-chat').html('<i class="fa fa-circle-o-notch fa-spin"></i> Publishing...');
+                    }
+                });
+
+
+                srvRqst.done(function(response){
+                    try{
+                        console.log(response);
+                        var responseObj = $.parseJSON(response);
+
+                        if(responseObj['status'] == 1){
+                            $('#message-alert').show();
+                            $('#message-sent-response').html(responseObj['message']);
+                            $('#chat-form').trigger('reset');
+                            $('#individual-recipient-input, #circle-recipient-input').hide();
+                        }else{
+                            $('#message-response').html(responseObj['message']);
+                        }
+
+                    }catch(exp){
+                        $('#message-response').html(exp);
+                    }finally{
+                         $('#btn-fcm-send-chat').html('Publish').prop('disabled', false);
+                    }
+                });
+                srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                    $('#message-response').html(errorMessage);
+                    $('#btn-fcm-send-chat').html('Publish').prop('disabled', false);
+                });
+            }
+        }
+    </script>
+{% endblock %}
